@@ -48,11 +48,11 @@ router.post("/", middleware.validateReqBody,
   return res.status(201).json({ company });
 });
 
-/** PATCH /companies/:code: - update fields in company;
+/** PUT /companies/:code: - update fields in company;
  *  request sent with JSON body of {name, description};
  *  return `{company: {code, name, description}}` */
 
-router.patch("/:code", middleware.validateReqBody, async function (req, res, next) {
+router.put("/:code", middleware.validateReqBody, async function (req, res, next) {
   if ("code" in req.body) throw new BadRequestError("Not allowed");
 
   const code = req.params.code;
