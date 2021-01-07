@@ -2,11 +2,12 @@
 
 /**  Middleware. */
 
-const { NotFoundError, BadRequestError } = require("../expressError");
+const { BadRequestError } = require("../expressError");
 const db = require("../db");
 
 /** Function checks if JSON body has required inputs.*/
 
+// TODO: Clean up logic, can use positive / truthy checks instead, less if statements
 function checkCompanyReqBody(req, res, next) {
   // Check if companies route is a put or a post
   // QUESTION: Best way to handle more descriptive merror message to user
@@ -14,17 +15,18 @@ function checkCompanyReqBody(req, res, next) {
   // RESPONSE: Have an array of field names and loop through, if not in body
   // add to array missing. Then make error message out of that. Could put array
   // of required fields in db.js
+
   if (req.params.code) {
     if (!(req.body.name) || !(req.body.description)) {
       throw new BadRequestError("Missing arguments in request");
     }
-    return next();
+
   } else {
     if (!(req.body.code) || !(req.body.name) || !(req.body.description)) {
       throw new BadRequestError("Missing arguments in request");
     }
-    return next();
   }
+  return next();
 }
 
 /** Function turns JSON body inputs into lowercase. */
@@ -37,7 +39,6 @@ function formatInputs(req, res, next) {
 /** Function checks if JSON body has required inputs for invoice */  
 
 function checkInvoiceReqBody(req, res, next) {
-  // Check if invoices route is a put or a post
 
   if (req.params.id) {
     if (!req.body.amt) {
@@ -51,8 +52,6 @@ function checkInvoiceReqBody(req, res, next) {
     return next();
   }
 }
-
-
 
 module.exports = { checkCompanyReqBody,
                    formatInputs, 

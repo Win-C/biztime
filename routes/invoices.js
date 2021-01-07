@@ -68,7 +68,6 @@ router.post("/", middleware.checkInvoiceReqBody, async function (req, res, next)
   }
 
   const invoice = results.rows[0];
-  console.log(invoice);
 
   return res.status(201).json({ invoice });
 });
