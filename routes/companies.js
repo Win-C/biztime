@@ -13,21 +13,32 @@ const middleware = require("./middleware");
 /** GET /companies: - returns `{companies: [{code, name}, ...]}` */
 
 router.get("/", async function (req, res, next) {
-  const results = await db.query("SELECT code, name FROM companies");
-  const companies = results.rows;
+  const cResults = await db.query("SELECT code, name FROM companies");
+  const companies = cResults.rows;
 
   return res.json({ companies });
 });
 
-/** GET /companies/:code: - returns `{company: {code, name, description}}` */
+/** GET /companies/:code: - returns 
+ * `{ company: { code, name, description,
+ *              invoices: [id, ...] }
+ *  }` 
+ **/
 
 router.get("/:code", async function (req, res, next) {
   const code = req.params.code;
-  const results = await db.query(
+  const cResults = await db.query(
     "SELECT code, name, description FROM companies WHERE code = $1", [code]);
-  const company = results.rows[0];
-
+  const company = cResults.rows[0];
   if (!company) throw new NotFoundError(`No matching company: ${code}`);
+
+  // grab invoice ids next for company
+  const iResults = await db.query(
+    "SELECT id FROM invoices WHERE comp_code = $1", [code]);
+  const invoices = iResults.rows;
+
+  company.invoices = invoices.map(invoice => invoice.id);
+
   return res.json({ company });
 });
 
@@ -35,15 +46,16 @@ router.get("/:code", async function (req, res, next) {
  *  request sent with JSON body of {code, name, description};
  *  return `{company: {code, name, description}}` */
 
-router.post("/", middleware.validateReqBody, 
+router.post("/", middleware.checkCompanyReqBody, 
                  middleware.formatInputs,
                  async function (req, res, next) {
-  const results = await db.query(
+  const { code, name, description } = req.body;
+  const cResults = await db.query(
     `INSERT INTO companies (code, name, description)
          VALUES ($1, $2, $3)
          RETURNING code, name, description`,
-    [req.body.code, req.body.name, req.body.description]); // Can destruct into an object before passing it in
-  const company = results.rows[0];
+    [code, name, description]);
+  const company = cResults.rows[0];
 
   return res.status(201).json({ company });
 });
@@ -52,29 +64,30 @@ router.post("/", middleware.validateReqBody,
  *  request sent with JSON body of {name, description};
  *  return `{company: {code, name, description}}` */
 
-router.put("/:code", middleware.validateReqBody, async function (req, res, next) {
+router.put("/:code", middleware.checkCompanyReqBody, async function (req, res, next) {
   if ("code" in req.body) throw new BadRequestError("Not allowed");
 
+  const { name, description } = req.body;
   const code = req.params.code;
-  const results = await db.query(
+  const cResults = await db.query(
     `UPDATE companies
          SET name=$1, description=$2
          WHERE code = $3
          RETURNING code, name, description`,
-    [req.body.name, req.body.description, code]);
-  const company = results.rows[0];
+    [name, description, code]);
+  const company = cResults.rows[0];
 
   if (!company) throw new NotFoundError(`No matching company: ${code}`);
   return res.json({ company });
 });
 
-/** DELETE /:code - delete company, return `{status: "deleted"}` */
+/** DELETE /companies/:code: - delete company, return `{status: "deleted"}` */
 
 router.delete("/:code", async function (req, res, next) {
   const code = req.params.code;
-  const results = await db.query(
+  const cResults = await db.query(
     "DELETE FROM companies WHERE code = $1 RETURNING code", [code]);
-  const company = results.rows[0];
+  const company = cResults.rows[0];
 
   if (!company) throw new NotFoundError(`No matching company: ${code}`);
   return res.json({ status: "deleted" });
