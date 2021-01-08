@@ -34,6 +34,7 @@ describe("GET /companies", function () {
   test("Gets a list of 1 company", async function () {
     const resp = await request(app).get("/companies");
     debugger;
+    // TODO: use either strings or properties of testCompany
     expect(resp.body).toEqual({
       companies: [{ code: testCompany.code, name: "TestCompany" }],
     });
