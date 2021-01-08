@@ -34,7 +34,7 @@ router.get("/:code", async function (req, res, next) {
 
   // grab invoice ids next for company
   const iResults = await db.query(
-    "SELECT id FROM invoices WHERE comp_code = $1", [code]);
+    "SELECT id, amt FROM invoices WHERE comp_code = $1", [code]);
   const invoices = iResults.rows;
 
   company.invoices = invoices;
@@ -46,19 +46,24 @@ router.get("/:code", async function (req, res, next) {
  *  request sent with JSON body of {code, name, description};
  *  return `{company: {code, name, description}}` */
 
-router.post("/", middleware.checkCompanyReqBody, 
+router.post("/", middleware.checkCompanyReqBody,
                  middleware.formatInputs,
                  async function (req, res, next) {
-  const { code, name, description } = req.body;
-  const cResults = await db.query(
-    `INSERT INTO companies (code, name, description)
+    const { code, name, description } = req.body;
+    let cResults;
+    try {
+      cResults = await db.query(
+        `INSERT INTO companies (code, name, description)
          VALUES ($1, $2, $3)
          RETURNING code, name, description`,
-    [code, name, description]);
-  const company = cResults.rows[0];
+        [code, name, description]);
+      } catch (err) {
+        throw new BadRequestError(`Company already exists: ${code}`);
+      }
+    const company = cResults.rows[0];
 
-  return res.status(201).json({ company });
-});
+    return res.status(201).json({ company });
+  });
 
 /** PUT /companies/:code: - update fields in company;
  *  request sent with JSON body of {name, description};

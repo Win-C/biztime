@@ -13,8 +13,8 @@ const middleware = require("./middleware");
 /** GET /invoices: - returns `{invoices: [{id, comp_code}, ...]}` */
 
 router.get("/", async function (req, res, next) {
-  const results = await db.query("SELECT id, comp_code FROM invoices");
-  const invoices = results.rows;
+  const iResult = await db.query("SELECT id, comp_code FROM invoices");
+  const invoices = iResult.rows;
 
   return res.json({ invoices });
 });
@@ -56,9 +56,9 @@ router.get("/:id", async function (req, res, next) {
 router.post("/", middleware.checkInvoiceReqBody, async function (req, res, next) {
 
   const { comp_code, amt } = req.body;
-  let results;
+  let iResult;
   try {
-    results = await db.query(
+    iResult = await db.query(
       `INSERT INTO invoices (comp_code, amt)
            VALUES ($1, $2)
            RETURNING id, comp_code, amt, paid, add_date, paid_date`,
@@ -67,7 +67,7 @@ router.post("/", middleware.checkInvoiceReqBody, async function (req, res, next)
     throw new BadRequestError(`Invalid inputs`);
   }
 
-  const invoice = results.rows[0];
+  const invoice = iResult.rows[0];
 
   return res.status(201).json({ invoice });
 });
@@ -81,9 +81,9 @@ router.put("/:id", middleware.checkInvoiceReqBody, async function (req, res, nex
   const id = req.params.id;
   const { amt } = req.body;
   
-  let results;
+  let iResult;
   try {
-    results = await db.query(
+    iResult = await db.query(
       `UPDATE invoices
              SET amt=$1
              WHERE id = $2
@@ -94,7 +94,7 @@ router.put("/:id", middleware.checkInvoiceReqBody, async function (req, res, nex
     throw new BadRequestError(`amt must be a number: ${amt}`);
   }
 
-  const invoice = results.rows[0];
+  const invoice = iResult.rows[0];
 
   if (!invoice) throw new NotFoundError(`Not found: ${id}`);
   return res.json({ invoice });
@@ -104,9 +104,9 @@ router.put("/:id", middleware.checkInvoiceReqBody, async function (req, res, nex
 
 router.delete("/:id", async function (req, res, next) {
   const id = req.params.id;
-  const results = await db.query(
+  const iResult = await db.query(
     "DELETE FROM invoices WHERE id = $1 RETURNING id", [id]);
-  const invoice = results.rows[0];
+  const invoice = iResult.rows[0];
 
   if (!invoice) throw new NotFoundError(`No matching invoice: ${id}`);
   return res.json({ status: "deleted" });
